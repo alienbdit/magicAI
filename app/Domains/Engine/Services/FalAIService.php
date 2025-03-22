@@ -26,6 +26,8 @@ class FalAIService
 
     public const MINIMAX_URL = 'https://queue.fal.run/fal-ai/minimax-video';
 
+    public const VEO_2_URL = 'https://queue.fal.run/fal-ai/veo2';
+
     public static function generate($prompt, ?EntityEnum $entity = EntityEnum::FLUX_PRO)
     {
         $entityValue = (setting('fal_ai_default_model') ?: $entity?->value);
@@ -71,7 +73,7 @@ class FalAIService
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
             'Authorization' => 'Key ' . ApiHelper::setFalAIKey(),
-        ])->post($url);
+        ])->get($url);
 
         if (($images = $http->json('images')) && is_array($images)) {
             $image = Arr::first($images);
@@ -166,8 +168,26 @@ class FalAIService
         return $response->json();
     }
 
+    public static function veo2Generate(string $prompt)
+    {
+        $response = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+            'Authorization' => 'Key ' . ApiHelper::setFalAIKey(),
+        ])
+            ->post(self::VEO_2_URL,
+                [
+                    'prompt' => $prompt,
+                ]);
+
+        return $response->json();
+    }
+
     public static function getStatus($url)
     {
+        ini_set('max_execution_time', 440);
+        set_time_limit(0);
+
         $response = Http::withHeaders([
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',

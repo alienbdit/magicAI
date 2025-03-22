@@ -47,6 +47,7 @@ Route::middleware('auth:api')->group(function () {
             Route::patch('/', 'App\Http\Controllers\Api\UserController@update');
             Route::delete('/', 'App\Http\Controllers\Api\UserController@destroy');
         });
+
     });
     Route::prefix('app')->group(function () {
         Route::get('email-confirmation-setting', 'App\Http\Controllers\Api\AppController@getEmailConfirmationSetting'); // if emailconfirmation = true -> then mail required, elseif emailconfirmation = false -> then email confirmation not required
@@ -141,6 +142,16 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/ticket/{ticket_id}/last-message', "App\Http\Controllers\Api\UserSupportApiController@ticketLastMessage");
         Route::post('/send-message', "App\Http\Controllers\Api\UserSupportApiController@sendMessage");
         Route::get('/user/{ticket_id}', "App\Http\Controllers\Api\UserSupportApiController@ticketUser");
+    });
+    Route::prefix('aibots')->group(function () {
+      Route::get('/', "App\Http\Controllers\Api\ChatBotController@index");
+      Route::get('/{id}', "App\Http\Controllers\Api\ChatBotController@singleChatBot");
+      Route::post('/', "App\Http\Controllers\Api\ChatBotController@create");
+      Route::post('/code', "App\Http\Controllers\Api\ChatBotController@getEmbedCode");
+      Route::put('/', "App\Http\Controllers\Api\ChatBotController@update");
+      Route::delete('/', "App\Http\Controllers\Api\ChatBotController@delete");
+      Route::post('/train/url', "App\Http\Controllers\Api\ChatBotController@trainUrl");
+
     });
 
     Route::prefix('documents')->group(function () {

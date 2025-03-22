@@ -26,7 +26,7 @@ class ChatBotController extends Controller
         }
 
         return view('panel.chatbot.form', compact('chatbotData'));
-    }
+    } 
 
     public function addOrUpdateSave(Request $request)
     {

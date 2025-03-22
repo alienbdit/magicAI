@@ -7,6 +7,7 @@ use App\Models\Usage;
 use App\Models\User;
 use Exception;
 use Spatie\Newsletter\Facades\Newsletter;
+use Throwable;
 
 class UserObserver
 {
@@ -39,13 +40,15 @@ class UserObserver
                 config([
                     'xero.clientId'     => setting('XERO_CLIENT_ID'),
                     'xero.clientSecret' => setting('XERO_CLIENT_SECRET'),
+                    'xero.redirectUri'  => setting('XERO_REDIRECT_URI'),
+                    'xero.landingUri'   => setting('XERO_LANDING_URL'),
                 ]);
                 $response = \Dcblogdev\Xero\Facades\Xero::contacts()->store([
                     'Name' => $user->name,
                 ]);
                 $user->xero_account_id = $response['ContactID'] ?? null;
                 $user->save();
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
             }
         }
 

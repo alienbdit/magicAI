@@ -48,24 +48,57 @@ trait HasCreditLimit
     public function creditBalance(): float
     {
         return once(function () {
-            $credit = $this->getCredit()['credit'];
-
-            if (is_string($credit)) {
-                $credit = (float) $credit;
-            }
-
-            $aiFinances = app('ai_chat_model_plan');
-
-            $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
-            $model = $this->model();
-            if ($model && ! $model->is_selected &&
-                ! in_array($model->key, $engineDefaultModels, true) &&
-                ! in_array($model->id, $aiFinances, true)) {
-                return 0;
-            }
-
-            return $credit;
+            return $this->getCreditBalance();
         });
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function isUnlimitedCredit(): bool
+    {
+        return once(function () {
+            return $this->getIsUnlimitedCredit();
+        });
+    }
+
+    public function getCreditBalance(): float
+    {
+        $credit = $this->getCredit()['credit'];
+
+        if (is_string($credit)) {
+            $credit = (float) $credit;
+        }
+
+        $aiFinances = app('ai_chat_model_plan');
+
+        $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
+        $model = $this->model();
+        if ($model && ! $model->is_selected &&
+            ! in_array($model->key, $engineDefaultModels, true) &&
+            ! in_array($model->id, $aiFinances, true)) {
+            return 0;
+        }
+
+        return $credit;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function getIsUnlimitedCredit(): bool
+    {
+        $aiFinances = app('ai_chat_model_plan');
+
+        $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
+        $model = $this->model();
+        if ($model && ! $model->is_selected &&
+            ! in_array($model->key, $engineDefaultModels, true) &&
+            ! in_array($model->id, $aiFinances, true)) {
+            return false;
+        }
+
+        return $this->getCredit()['isUnlimited'];
     }
 
     /**
@@ -149,26 +182,6 @@ trait HasCreditLimit
 
         return $this->updateUserCredit($value, function ($creditBalance, $credit) {
             return max(0, $creditBalance - $credit);
-        });
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function isUnlimitedCredit(): bool
-    {
-        return once(function () {
-            $aiFinances = app('ai_chat_model_plan');
-
-            $engineDefaultModels = $this->engine()->getDefaultModels(Setting::getCache(), SettingTwo::getCache());
-            $model = $this->model();
-            if ($model && ! $model->is_selected &&
-                ! in_array($model->key, $engineDefaultModels, true) &&
-                ! in_array($model->id, $aiFinances, true)) {
-                return false;
-            }
-
-            return $this->getCredit()['isUnlimited'];
         });
     }
 

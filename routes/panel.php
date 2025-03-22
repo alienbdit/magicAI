@@ -371,20 +371,7 @@ Route::group([
                         Route::post('plans-credits-engine', 'transferPlansEntityCreditsOfEngines')->name('plans.credits.engine');
                     });
 
-                    Route::group([
-                        'as'         => 'chatbot.',
-                        'prefix'     => 'chatbot/{chatbot}',
-                        'controller' => ChatbotTrainingController::class,
-                    ], function () {
-                        Route::post('text', 'text')->name('text');
-                        Route::post('qa', 'qa')->name('qa');
 
-                        Route::post('training', 'training')->name('training');
-                        Route::get('web-sites', 'getWebSites')->name('web-sites');
-                        Route::post('web-sites', 'postWebSites');
-                        Route::post('upload-pdf', 'uploadPdf')->name('upload-pdf');
-                        Route::delete('item/{id}', 'deleteItem')->name('item.delete');
-                    });
 
                     Route::group([
                         'as'     => 'ai-chat-model.',
@@ -404,7 +391,7 @@ Route::group([
                         Route::get('external-settings', 'externalChatSettings')->name('external_settings');
                     });
 
-                    Route::resource('chatbot', ChatbotController::class);
+                 
 
                     // Marketplace
                     Route::group([

@@ -27,8 +27,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use JsonException;
+use OpenAI as OpenAIMain;
 use OpenAI\Laravel\Facades\OpenAI;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class StreamService
 {
@@ -39,6 +41,7 @@ class StreamService
         match (setting('default_ai_engine', EngineEnum::OPEN_AI->value)) {
             EngineEnum::ANTHROPIC->value => ApiHelper::setAnthropicKey($setting),
             EngineEnum::GEMINI->value    => ApiHelper::setGeminiKey($setting),
+            EngineEnum::X_AI->value 	    => ApiHelper::setXAiKey($setting),
             default                      => ApiHelper::setOpenAiKey($setting),
         };
     }
@@ -66,6 +69,7 @@ class StreamService
             EngineEnum::ANTHROPIC->value => $this->anthropicChatStream($chat_bot, $history, $main_message, $chat_type, $contain_images),
             EngineEnum::GEMINI->value    => $this->geminiChatStream($chat_bot, $history, $main_message, $chat_type, $contain_images),
             EngineEnum::DEEP_SEEK->value => $this->deepseekChatStream($chat_bot, $history, $main_message, $contain_images),
+            EngineEnum::X_AI->value      => $this->xAiChatStream($chat_bot, $history, $main_message, $chat_type, $contain_images),
             default                      => throw new Exception('Invalid AI Engine'),
         };
     }
@@ -313,11 +317,28 @@ class StreamService
                                     $decoded = json_decode($json, true);
                                     if (json_last_error() === JSON_ERROR_NONE) {
                                         $delta = $decoded['choices'][0]['delta'] ?? [];
+
+                                        // Handle reasoning content
                                         if (isset($delta['reasoning_content']) && $delta['reasoning_content'] !== null) {
+                                            // Add start signal if this is the first reasoning content
+                                            if (! isset($reasoningStarted)) {
+                                                $reasoningStarted = true;
+                                                $startSignal = '[START_REASONING]';
+                                                $output .= $startSignal;
+                                                $responsedText .= '[START_REASONING]';
+
+                                                echo PHP_EOL;
+                                                echo "event: data\n";
+                                                echo 'data: ' . $startSignal;
+                                                echo "\n\n";
+                                                flush();
+                                            }
+
                                             $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $delta['reasoning_content']);
                                             $output .= $messageFix;
                                             $responsedText .= $messageFix;
                                             // $total_used_tokens += countWords($messageFix); do we calculate reasoning content?
+
                                             echo PHP_EOL;
                                             echo "event: data\n";
                                             echo 'data: ' . $messageFix;
@@ -325,7 +346,23 @@ class StreamService
                                             flush();
                                         }
 
+                                        // Handle regular content
                                         if (isset($delta['content']) && $delta['content'] !== null) {
+                                            // Add end signal if we were in reasoning mode
+                                            if (isset($reasoningStarted)) {
+                                                $endSignal = '[END_REASONING]<br/><br/>';
+                                                $output .= $endSignal;
+                                                $responsedText .= "[END_REASONING]\n\n";
+
+                                                echo PHP_EOL;
+                                                echo "event: data\n";
+                                                echo 'data: ' . $endSignal;
+                                                echo "\n\n";
+                                                flush();
+
+                                                unset($reasoningStarted);
+                                            }
+
                                             if (! $emptyLinesAdded) {
                                                 echo "event: data\n";
                                                 echo 'data: <br/><br/><br/>';
@@ -333,8 +370,8 @@ class StreamService
                                                 flush();
                                                 $emptyLinesAdded = true;
                                             }
-                                            $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $delta['content']);
 
+                                            $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $delta['content']);
                                             $output .= $messageFix;
                                             $responsedText .= $messageFix;
                                             $total_used_tokens += countWords($messageFix);
@@ -626,6 +663,7 @@ class StreamService
             EngineEnum::ANTHROPIC->value => $this->anthropicOtherStream($request, $chat_bot),
             EngineEnum::GEMINI->value    => $this->geminiOtherStream($request, $chat_bot),
             EngineEnum::DEEP_SEEK->value => $this->deepseekOtherStream($request, $chat_bot),
+            EngineEnum::X_AI->value 	    => $this->xAiOtherStream($request, $chat_bot),
             default                      => $this->openaiOtherStream($request, $chat_bot),
         };
     }
@@ -766,8 +804,238 @@ class StreamService
         }
     }
 
-    // OpenAI Stream
+    // X-AI Stream
+    /**
+     * @throws Exception
+     */
+    private function xAiChatStream(string $chat_bot, $history, $main_message, $chat_type, $contain_images): ?StreamedResponse
+    {
+        $total_used_tokens = 0;
+        $output = '';
+        $responsedText = '';
 
+        if ($contain_images) {
+            $driver = Entity::driver(EntityEnum::GPT_4_O);
+        } else {
+            $driver = Entity::driver(EntityEnum::fromSlug($chat_bot));
+        }
+
+        return response()->stream(static function () use ($driver, $history, &$total_used_tokens, &$output, &$responsedText, $main_message, $contain_images) {
+            $chat_id = $main_message->user_openai_chat_id;
+            $chat = UserOpenaiChat::whereId($chat_id)->first();
+
+            echo "event: message\n";
+            echo 'data: ' . $main_message->id . "\n\n";
+            if (! $driver->hasCreditBalance()) {
+                echo PHP_EOL;
+                echo "event: data\n";
+                echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
+                echo "\n\n";
+                flush();
+                echo "event: stop\n";
+                echo 'data: [DONE]';
+                echo "\n\n";
+                flush();
+
+                return null;
+            }
+
+            $model = $driver->enum()->value;
+            if ($contain_images) {
+                $options = [
+                    'model'             => EntityEnum::GPT_4_O->value,
+                    'messages'          => $history,
+                    'temperature'       => 1.0,
+                    'frequency_penalty' => 0,
+                    'presence_penalty'  => 0,
+                    'stream'            => true,
+                    'max_tokens'        => 2000,
+                ];
+                $stream = OpenAI::chat()->createStreamed($options);
+            } else {
+                $api = ApiHelper::setXAiKey();
+
+                try {
+                    $cli = OpenAIMain::factory()->withBaseUri('https://api.x.ai/v1')
+                        ->withHttpHeader('Authorization', 'Bearer ' . $api)
+                        ->withApiKey($api)
+                        ->make();
+                    $stream = $cli->chat()->createStreamed([
+                        'model'             => $model,
+                        'messages'          => $history,
+                        'stream'            => true,
+                        'temperature'       => 1.0,
+                    ]);
+                } catch (Exception|Throwable $e) {
+                    echo PHP_EOL;
+                    echo "event: data\n";
+                    echo 'data: ' . __('Something went wrong. Please try again later.');
+                    echo "\n\n";
+                    flush();
+                    echo "event: stop\n";
+                    echo 'data: [DONE]';
+                    echo "\n\n";
+                    flush();
+
+                    return null;
+                }
+            }
+
+            foreach ($stream as $response) {
+                if (isset($response->choices[0]->delta->content)) {
+                    $text = $response->choices[0]->delta->content;
+                    $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
+                    $output .= $messageFix;
+                    $responsedText .= $text;
+                    $total_used_tokens += countWords($text);
+                    if (connection_aborted()) {
+                        break;
+                    }
+                    echo PHP_EOL;
+                    echo "event: data\n";
+                    echo 'data: ' . $messageFix;
+                    echo "\n\n";
+                    flush();
+                }
+            }
+            echo "event: stop\n";
+            echo 'data: [DONE]';
+            echo "\n\n";
+            flush();
+
+            $main_message->response = $responsedText;
+            $main_message->output = $output;
+            $main_message->credits = $total_used_tokens;
+            $main_message->words = $total_used_tokens;
+            $main_message->save();
+            $chat->total_credits += $total_used_tokens;
+            $chat->save();
+
+            $driver->input($responsedText)->calculateCredit()->decreaseCredit();
+        }, 200, [
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Content-Type'      => 'text/event-stream',
+        ]);
+    }
+
+    private function xAiOtherStream(Request $request, $chat_bot): ?StreamedResponse
+    {
+        $apiKey = ApiHelper::setXAiKey();
+        $xai = OpenAIMain::factory()
+            ->withApiKey($apiKey)
+            ->withBaseUri('https://api.x.ai/v1')
+            ->make();
+
+        $prompt = $request->get('prompt');
+        $message_id = $request->get('message_id');
+        $openai_id = $request->get('openai_id');
+        $title = $request->get('title');
+
+        $history[] = ['role' => 'user', 'content' => $prompt];
+        $total_used_tokens = 0;
+        $output = '';
+        $responsedText = '';
+        $user = Auth::user();
+        $driver = Entity::driver(EntityEnum::fromSlug($chat_bot));
+
+        return response()->stream(static function () use ($user, $driver, $history, &$total_used_tokens, &$output, &$responsedText, $message_id, $title, $openai_id, $prompt) {
+            $entry = UserOpenai::find($message_id);
+            if (! $entry) {
+                $entry = new UserOpenai;
+                $entry->user_id = $user->id;
+                $entry->input = $prompt;
+                $entry->hash = str()->random(256);
+                $entry->team_id = $user->team_id;
+                $entry->slug = str()->random(7) . str($user->fullName())->slug() . '-workbook';
+                $entry->openai_id = $openai_id ?? 1;
+            }
+
+            echo "event: message\n";
+            echo 'data: ' . $message_id . "\n\n";
+
+            if (! $driver->hasCreditBalance()) {
+                echo PHP_EOL;
+                echo "event: data\n";
+                echo 'data: ' . __('You have no credits left. Please buy more credits to continue.');
+                echo "\n\n";
+                flush();
+                echo "event: stop\n";
+                echo 'data: [DONE]';
+                echo "\n\n";
+                flush();
+
+                return null;
+            }
+
+            $api = ApiHelper::setXAiKey();
+
+            try {
+                $cli = OpenAIMain::factory()->withBaseUri('https://api.x.ai/v1')
+                    ->withHttpHeader('Authorization', 'Bearer ' . $api)
+                    ->withApiKey($api)
+                    ->make();
+                $stream = $cli->chat()->createStreamed([
+                    'model'             => $driver->enum()->value,
+                    'messages'          => $history,
+                    'stream'            => true,
+                    'temperature'       => 1.0,
+                ]);
+            } catch (Exception|Throwable $e) {
+                echo PHP_EOL;
+                echo "event: data\n";
+                echo 'data: ' . __('Something went wrong. Please try again later.');
+                echo "\n\n";
+                flush();
+                echo "event: stop\n";
+                echo 'data: [DONE]';
+                echo "\n\n";
+                flush();
+
+                return null;
+            }
+
+            foreach ($stream as $response) {
+                if (isset($response->choices[0]->delta->content)) {
+                    $text = $response->choices[0]->delta->content;
+                    $messageFix = str_replace(["\r\n", "\r", "\n"], '<br/>', $text);
+                    $output .= $messageFix;
+                    $responsedText .= $text;
+                    $total_used_tokens += countWords($text);
+                    if (connection_aborted()) {
+                        break;
+                    }
+                    echo PHP_EOL;
+                    echo "event: data\n";
+                    echo 'data: ' . $messageFix;
+                    echo "\n\n";
+                    flush();
+                }
+            }
+            echo "event: stop\n";
+            echo 'data: [DONE]';
+            echo "\n\n";
+            flush();
+
+            $entry->title = $title ?: __('New Workbook');
+            $entry->credits = $total_used_tokens;
+            $entry->words = $total_used_tokens;
+            $entry->response = $responsedText;
+            $entry->output = $output;
+            $entry->save();
+
+            $driver
+                ->input($responsedText)
+                ->calculateCredit()
+                ->decreaseCredit();
+        }, 200, [
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Content-Type'      => 'text/event-stream',
+        ]);
+    }
+
+    // OpenAI Stream
     /**
      * @throws Exception
      */

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Helpers\Classes\MarketplaceHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Throwable;
 
 class UserOrder extends Model
 {
@@ -37,13 +38,17 @@ class UserOrder extends Model
                     config([
                         'xero.clientId'     => setting('XERO_CLIENT_ID'),
                         'xero.clientSecret' => setting('XERO_CLIENT_SECRET'),
+                        'xero.redirectUri'  => setting('XERO_REDIRECT_URI'),
+                        'xero.landingUri'   => setting('XERO_LANDING_URL'),
                     ]);
+                    $nowDate = date('Y-m-d');
                     $data = [
                         'Type'    => 'ACCREC',
                         'Contact' => [
                             'ContactID' => $model->user->xero_account_id,
                         ],
-                        'Date'            => date('Y-m-d'),
+                        'Date'            => $nowDate,
+                        'DueDate'         => $nowDate,
                         'LineAmountTypes' => 'Inclusive',
                         'LineItems'       => [
                             [
@@ -55,7 +60,7 @@ class UserOrder extends Model
                     ];
 
                     $response = \Dcblogdev\Xero\Facades\Xero::invoices()->store($data);
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                 }
             }
         });

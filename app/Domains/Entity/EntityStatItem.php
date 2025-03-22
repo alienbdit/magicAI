@@ -64,10 +64,24 @@ class EntityStatItem
         );
     }
 
+    public function totalCreditsForGroup(): float
+    {
+        return $this->list()->sum(
+            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->getCreditBalance()
+        );
+    }
+
     public function checkIfThereUnlimited(): bool
     {
         return $this->list()->contains(
             fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->isUnlimitedCredit()
+        );
+    }
+
+    public function checkIfThereUnlimitedForGroup(): bool
+    {
+        return $this->list()->contains(
+            fn (WithCreditInterface $driver) => $driver->forUser($this->getUser())->forPlan($this->plan)->getIsUnlimitedCredit()
         );
     }
 

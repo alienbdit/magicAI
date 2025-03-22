@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Extensions\AIVideoToVideo\System\Services\AnimatediffV2vService;
-use App\Models\UserOpenai;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 
 class TestController extends Controller
 {
     public function test()
     {
-        //        $item = UserOpenai::query()->find(285);
-        //		app(AnimatediffV2VService::class)->setOpenai($item)->generate();
-        //		app(AnimatediffV2VService::class)->setOpenai($item)->checked();
+        //        Auth::login(User::find(1));
 
+        //        return redirect('/dashboard');
     }
 
     public function getYoutubeTranscript($videoUrl)

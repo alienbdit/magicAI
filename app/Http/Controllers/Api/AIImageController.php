@@ -202,6 +202,11 @@ class AIImageController extends Controller
         return response()->json(['status' => 'success', 'images' => $entries, 'image_storage' => $this->settings_two->ai_image_storage]);
     }
 
+    private function getOpenAIApiKey(): string
+    {
+        return ApiHelper::setOpenAiKey();
+    }
+
     private function getStableApiKey(): string
     {
         $stableDiffusionKeys = explode(',', $this->settings_two->stable_diffusion_api_key);

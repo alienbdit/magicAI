@@ -6,6 +6,7 @@ use App\Domains\Engine\Enums\EngineEnum;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Facades\Entity;
 use App\Extensions\AzureTTS\System\Services\AzureService;
+use App\Extensions\SpeechifyTTS\System\Services\SpeechifyService;
 use App\Helpers\Classes\ApiHelper;
 use App\Helpers\Classes\Helper;
 use App\Models\OpenAIGenerator;
@@ -93,6 +94,7 @@ class TTSController extends Controller
         }
 
         $azureService = $this->hasAzureSpeech($speeches) ? new AzureService : null;
+        $speechifyService = $this->hasSpeechifySpeech($speeches) ? new SpeechifyService : null;
 
         foreach ($speeches as $speech) {
             $model = $this->getAIModel($speech['platform'], $speech['pace']);
@@ -105,7 +107,7 @@ class TTSController extends Controller
             }
 
             try {
-                $audioContent = $this->processSpeech($speech, $azureService);
+                $audioContent = $this->processSpeech($speech, $azureService, $speechifyService);
             } catch (ApiException|GuzzleException $e) {
                 return $this->sendErrorResponse(__('Failed to connect to the AI service') . ': ' . $e->getMessage());
             }
@@ -137,6 +139,7 @@ class TTSController extends Controller
             EngineEnum::GOOGLE->slug()     => EntityEnum::GOOGLE,
             EngineEnum::ELEVENLABS->slug() => EntityEnum::ELEVENLABS,
             EngineEnum::AZURE->slug()      => EntityEnum::AZURE,
+            EngineEnum::Speechify->slug()  => EntityEnum::Speechify,
             EngineEnum::OPEN_AI->slug()    => EntityEnum::fromSlug($pace),
             default                        => throw new Exception(__('Invalid AI Model.')),
         };
@@ -146,18 +149,19 @@ class TTSController extends Controller
      * Processes the speech based on the selected AI model and platform.
      *
      * @param  array  $speech  the speech data from the request
-     * @param  ?AzureService|null  $azureService  optional Azure service instance
+     * @param  AzureService|null  $azureService  optional Azure service instance
      *
      * @throws ApiException
      * @throws GuzzleException
      */
-    private function processSpeech(array $speech, ?AzureService $azureService): StreamInterface|JsonResponse|string
+    private function processSpeech(array $speech, ?AzureService $azureService, ?SpeechifyService $speechifyService): StreamInterface|JsonResponse|string
     {
         return match ($speech['platform']) {
             EngineEnum::GOOGLE->value     => $this->processGoogleSpeech($speech),
             EngineEnum::OPEN_AI->value    => $this->processOpenAISpeech($speech),
             EngineEnum::ELEVENLABS->value => $this->processElevenLabsSpeech($speech),
             EngineEnum::AZURE->value      => $this->processAzureSpeech($speech, $azureService),
+            EngineEnum::Speechify->value  => $this->processSpeechifySpeech($speech, $speechifyService),
             default                       => $this->sendErrorResponse(__('Invalid platform.')),
         };
     }
@@ -297,6 +301,19 @@ class TTSController extends Controller
     }
 
     /**
+     * Processes speech using Speechify's Text-to-Speech API.
+     *
+     * @param  array  $speech  the speech data from the request
+     * @param  SpeechifyService|null  $speechifyService  the Speechify service instance for processing speech
+     *
+     * @return string the audio content
+     */
+    private function processSpeechifySpeech(array $speech, ?SpeechifyService $speechifyService): string
+    {
+        return $speechifyService?->synthesizeSpeech($speech['voice'], $speech['content'], $speech['lang']);
+    }
+
+    /**
      * Checks whether the Google Cloud credentials file exists.
      *
      * @return bool returns true if credentials exist, otherwise false
@@ -316,6 +333,18 @@ class TTSController extends Controller
     private function hasAzureSpeech(array $speeches): bool
     {
         return collect($speeches)->contains(fn ($speech) => $speech['platform'] === EngineEnum::AZURE->value);
+    }
+
+    /**
+     * Checks if any speech in the request is using Speechify platform.
+     *
+     * @param  array  $speeches  array of speech data
+     *
+     * @return bool true if any speech uses Speechify platform, otherwise false
+     */
+    private function hasSpeechifySpeech(array $speeches): bool
+    {
+        return collect($speeches)->contains(fn ($speech) => $speech['platform'] === EngineEnum::Speechify->value);
     }
 
     /**

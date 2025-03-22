@@ -20,6 +20,11 @@ class PromptController extends Controller
 
     public function addNew(Request $req)
     {
+        $req->validate([
+            'title'  => 'required',
+            'prompt' => 'required',
+        ]);
+
         $title = $req->title;
         $prompt = $req->prompt;
 

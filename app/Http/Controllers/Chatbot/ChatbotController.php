@@ -75,7 +75,7 @@ class ChatbotController extends Controller
     public function index()
     {
         return view('panel.admin.chatbot.index', [
-            'title' => trans('Chatbot Training'),
+            'title' => trans('Chatbot Trainingx'),
             'items' => Chatbot::query()->paginate(10),
         ]);
     }

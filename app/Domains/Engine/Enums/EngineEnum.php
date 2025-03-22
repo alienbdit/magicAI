@@ -23,9 +23,11 @@ use App\Domains\Engine\Drivers\PiAPIEngineDriver;
 use App\Domains\Engine\Drivers\PixabayEngineDriver;
 use App\Domains\Engine\Drivers\PlagiarismCheckEngineDriver;
 use App\Domains\Engine\Drivers\SerperEngineDriver;
+use App\Domains\Engine\Drivers\SpeechifyEngineDriver;
 use App\Domains\Engine\Drivers\StableDiffusionEngineDriver;
 use App\Domains\Engine\Drivers\SynthesiaEngineDriver;
 use App\Domains\Engine\Drivers\UnsplashEngineDriver;
+use App\Domains\Engine\Drivers\XAIEngineDriver;
 use App\Domains\Entity\Enums\EntityEnum;
 use App\Domains\Entity\Models\Entity;
 use App\Enums\Contracts;
@@ -68,6 +70,8 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
 
     case AZURE = 'azure';
 
+    case Speechify = 'speechify';
+
     case SERPER = 'serper';
     case PERPLEXITY = 'perplexity';
 
@@ -80,6 +84,8 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
     case PEBBLELY = 'pebblely';
 
     case FAL_AI = 'fal_ai';
+
+    case X_AI = 'x_ai';
 
     case AI_ML_MINIMAX = 'minimax';
 
@@ -99,6 +105,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::ELEVENLABS             => __('Elevenlabs'),
             self::GOOGLE                 => __('Google TTS'),
             self::AZURE                  => __('Azure TTS'),
+            self::Speechify              => __('Speechify TTS'),
             self::SERPER                 => __('Serper'),
             self::PERPLEXITY             => __('Perplexity'),
             self::CLIPDROP               => __('Clipdrop'),
@@ -107,6 +114,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::HEYGEN                 => __('Heygen'),
             self::PEBBLELY               => __('Pebblely'),
             self::FAL_AI                 => __('Fal AI'),
+            self::X_AI                   => __('X AI'),
             self::PI_API                 => __('PiAPI'),
             self::AI_ML_MINIMAX          => __('AI/ML Minimax'),
             self::OPEN_ROUTER            => __('Open Router'),
@@ -128,6 +136,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::ELEVENLABS       => ElevenlabsEngineDriver::class,
             self::GOOGLE           => GoogleEngineDriver::class,
             self::AZURE            => AzureEngineDriver::class,
+            self::Speechify        => SpeechifyEngineDriver::class,
             self::SERPER           => SerperEngineDriver::class,
             self::PERPLEXITY       => PerplexityEngineDriver::class,
             self::CLIPDROP         => ClipDropEngineDriver::class,
@@ -136,6 +145,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::HEYGEN           => HeygenEngineDriver::class,
             self::PEBBLELY         => PebblelyEngineDriver::class,
             self::FAL_AI           => FallAIEngineDriver::class,
+            self::X_AI             => XAIEngineDriver::class,
             self::AI_ML_MINIMAX    => AiMlMinimaxAIEngineDriver::class,
             self::OPEN_ROUTER      => OpenRouterEngineDriver::class,
         };
@@ -202,6 +212,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::PI_API 		        => [EntityEnum::MIDJOURNEY],
             self::FAL_AI           => [
                 EntityEnum::fromSlug(setting('fal_ai_default_model', EntityEnum::FLUX_PRO->slug())),
+                EntityEnum::VEO_2,
                 EntityEnum::KLING,
                 EntityEnum::LUMA_DREAM_MACHINE,
                 EntityEnum::HAIPER,
@@ -212,12 +223,17 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
                 EntityEnum::ANIMATEDIFF_V2V,
                 EntityEnum::FAST_ANIMATEDIFF_TURBO,
             ],
+            self::X_AI => [
+                EntityEnum::GROK_2_1212,
+                EntityEnum::GROK_2_VISION_1212,
+            ],
             self::AI_ML_MINIMAX    => [EntityEnum::MUSIC_01],
             self::UNSPLASH         => [EntityEnum::UNSPLASH],
             self::PEXELS           => [EntityEnum::PEXELS],
             self::PIXABAY          => [EntityEnum::PIXABAY],
             self::GOOGLE           => [EntityEnum::GOOGLE],
             self::AZURE            => [EntityEnum::AZURE],
+            self::Speechify        => [EntityEnum::Speechify],
             self::SERPER           => [EntityEnum::SERPER],
             self::PERPLEXITY       => [EntityEnum::PERPLEXITY],
             self::CLIPDROP         => [EntityEnum::CLIPDROP],
@@ -237,6 +253,7 @@ enum EngineEnum: string implements Contracts\WithStringBackedEnum
             self::ANTHROPIC        => EntityEnum::fromSlug(setting('anthropic_default_model', EntityEnum::CLAUDE_3_OPUS->slug())),
             self::GEMINI           => EntityEnum::fromSlug(setting('gemini_default_model', EntityEnum::GEMINI_1_5_PRO_LATEST->slug())),
             self::DEEP_SEEK        => EntityEnum::fromSlug(setting('deepseek_default_model', EntityEnum::DEEPSEEK_CHAT->slug())),
+            self::X_AI             => EntityEnum::fromSlug(setting('xai_default_model', EntityEnum::GROK_2_1212->slug())),
             default                => throw new Exception('No default model found for engine ' . $this->value),
         };
     }

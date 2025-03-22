@@ -37,11 +37,13 @@ use App\Models\UserOrder;
 use App\Models\Voice\ElevenlabVoice;
 use App\Services\ElevenlabsService;
 use App\Services\GatewaySelector;
+use App\Services\Orders\OrdersExportService;
 use enshrined\svgSanitize\Sanitizer;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -662,9 +664,33 @@ class UserController extends Controller
 
     public function invoiceSingle($order_id)
     {
-        $invoice = UserOrder::where('order_id', $order_id)->where('user_id', auth()->user()->id)->firstOrFail();
+        if (auth()->user()->isAdmin()) {
+            $invoice = UserOrder::where('order_id', $order_id)->firstOrFail();
+        } else {
+            $invoice = UserOrder::where('order_id', $order_id)->where('user_id', auth()->user()->id)->firstOrFail();
+        }
 
         return view('panel.user.orders.invoice', compact('invoice'));
+    }
+
+    public function ordersExport($type)
+    {
+        $service = new OrdersExportService;
+
+        return match ($type) {
+            'pdf'   => $service->exportAsPdf(),
+            'excel' => $service->exportAsExcel(),
+            'csv'   => $service->exportAsCsv(),
+            default => redirect()->back()->with('error', 'Invalid export type'),
+        };
+    }
+
+    public function userOrdersList($user_id)
+    {
+        $user = User::findOrFail($user_id);
+        $list = $user->orders;
+
+        return view('panel.user.orders.index', compact('list', 'user'));
     }
 
     public function documentsAll(Request $request, $folderID = null)
@@ -1107,5 +1133,24 @@ class UserController extends Controller
         } else {
             return response()->json(['message' => __('Password is incorrect')], 401);
         }
+    }
+
+    public function exportInvoices(Request $request)
+    {
+        $type = 'pdf';
+        $cleanDates = static function ($date) {
+            return preg_replace('/(\+|\-)?(\d{2})(\d{2})$/', '+$2:$3', str_replace('GMT ', '', preg_replace('/\s*\(.*\)$/', '', $date)));
+        };
+        $startDate = Carbon::createFromFormat('D M d Y H:i:s O', $cleanDates($request->start_date));
+        $endDate = Carbon::createFromFormat('D M d Y H:i:s O', $cleanDates($request->end_date));
+        $invoices = UserOrder::whereBetween('created_at', [$startDate, $endDate])->get();
+        $service = new OrdersExportService;
+
+        return match ($type) {
+            'pdf'   => $service->exportAsPdf($invoices),
+            'excel' => $service->exportAsExcel(),
+            'csv'   => $service->exportAsCsv(),
+            default => redirect()->back()->with('error', 'Invalid export type'),
+        };
     }
 }

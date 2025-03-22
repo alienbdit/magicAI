@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -67,7 +68,11 @@ class Helper
 
         $marketSubscription = app(ExtensionRepositoryInterface::class)->subscription()->json();
 
-        return data_get($marketSubscription, 'data.stripe_status') === 'active';
+        $condition = data_get($marketSubscription, 'data.stripe_status') === 'active';
+
+        Cache::put('vip_membership', $condition, now()->addMinutes(5));
+
+        return $condition;
     }
 
     public static function marketplacePaymentMessage(string $status): string

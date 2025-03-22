@@ -31,6 +31,24 @@ trait HasApiKeys
         return Arr::random($apiKeys);
     }
 
+    public static function setXAiKey($setting = null, $all = false): array|string|null
+    {
+        $settings = $setting ?? Setting::getCache();
+
+        if ($settings?->getAttribute('user_api_option') || auth()->user()?->relationPlan?->getAttribute('user_api')) {
+            $apiKeys = explode(',', auth()->user()?->getAttribute('xai_api_keys'));
+        } else {
+            $apiKeys = explode(',', setting('xai_api_secret'));
+        }
+        config(['xai.api_key' => $apiKeys[array_rand($apiKeys)]]);
+
+        if ($all) {
+            return $apiKeys;
+        }
+
+        return config('xai.api_key');
+    }
+
     public static function setOpenAiKey($setting = null, $all = false): array|string|null
     {
         $settings = $setting ?? Setting::getCache();

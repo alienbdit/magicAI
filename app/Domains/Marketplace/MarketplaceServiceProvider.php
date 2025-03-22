@@ -66,7 +66,10 @@ class MarketplaceServiceProvider extends ServiceProvider
         'openai-realtime-chat' => \App\Extensions\OpenAIRealtimeChat\System\OpenAIRealtimeChatServiceProvider::class,
         'ai-video-to-video'    => \App\Extensions\AIVideoToVideo\System\AIVideoToVideoServiceProvider::class,
         'midjourney'           => \App\Extensions\Midjourney\System\MidjourneyServiceProvider::class,
+        'social-media'         => \App\Extensions\SocialMedia\System\SocialMediaServiceProvider::class,
+        'chatbot-agent'        => \App\Extensions\ChatbotAgent\System\ChatbotAgentServiceProvider::class,
         'xero'                 => \App\Extensions\Xero\System\XeroServiceProvider::class,
+        'speechify-tts'        => \App\Extensions\SpeechifyTTS\System\SpeechifyServiceProvider::class,
     ];
 
     public function register(): void

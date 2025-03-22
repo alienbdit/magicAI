@@ -141,7 +141,7 @@ class PaymentProcessController extends Controller
         abort(404);
     }
 
-    public function startSubscriptionCheckoutProcess(Request $request, $gateway = null, $referral = null): null|RedirectResponse|array
+    public function startSubscriptionCheckoutProcess(Request $request, $gateway = null, $referral = null): null|RedirectResponse|array|View
     {
         if ($gateway !== 'freeservice' && $request->isMethod('post')) {
             $gateways = Gateways::where('is_active', 1)->pluck('code')->toArray();
@@ -186,7 +186,7 @@ class PaymentProcessController extends Controller
     }
 
     // additional required functions
-    public function createPayPalOrder(Request $request): ?RedirectResponse
+    public function createPayPalOrder(Request $request): null|RedirectResponse|View
     {
         try {
             return GatewaySelector::selectGateway('paypal')::createPayPalOrder($request);
@@ -195,7 +195,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public function iyzicoPrepaidCallback(Request $request): ?RedirectResponse
+    public function iyzicoPrepaidCallback(Request $request): null|RedirectResponse|View
     {
         try {
             return GatewaySelector::selectGateway('iyzico')::iyzicoPrepaidCallback($request);
@@ -204,7 +204,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public function iyzicoSubscribeCallback(Request $request): ?RedirectResponse
+    public function iyzicoSubscribeCallback(Request $request): null|RedirectResponse|View
     {
         try {
             return GatewaySelector::selectGateway('iyzico')::iyzicoSubscribeCallback($request);
@@ -213,7 +213,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public function iyzicoProductsList(Request $request): ?RedirectResponse
+    public function iyzicoProductsList(Request $request): null|RedirectResponse|View
     {
         try {
             return GatewaySelector::selectGateway('iyzico')::iyzicoProductsList($request);
@@ -269,7 +269,7 @@ class PaymentProcessController extends Controller
         return view('panel.admin.banktransfer.index', compact('bankOrders'));
     }
 
-    public static function bankDelete($id = null): ?RedirectResponse
+    public static function bankDelete($id = null): null|RedirectResponse|View
     {
         $post = UserOrder::findOrFail($id);
         $post->delete();
@@ -277,7 +277,7 @@ class PaymentProcessController extends Controller
         return back()->with(['message' => __('Deleted Successfully'), 'type' => 'success']);
     }
 
-    public static function bankUpdateSave(Request $request): ?RedirectResponse
+    public static function bankUpdateSave(Request $request): null|RedirectResponse|View
     {
         if ($request->order_status !== 0) {
             $order = UserOrder::findOrFail($request->order_id);
@@ -394,7 +394,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public static function cancelActiveSubscription(): ?RedirectResponse
+    public static function cancelActiveSubscription(): null|RedirectResponse|View
     {
         $gateway = null;
         $activeSub = getCurrentActiveSubscription();
@@ -458,7 +458,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public static function deletePaymentPlan($id): bool|RedirectResponse
+    public static function deletePaymentPlan($id): bool|RedirectResponse|View
     {
         $plan = Plan::where('id', $id)->first();
         if ($plan) {
@@ -495,7 +495,7 @@ class PaymentProcessController extends Controller
         return back()->with(['message' => 'Couldn\'t find plan.', 'type' => 'error']);
     }
 
-    public static function saveGatewayProducts($plan, ?Collection $paramGateways = null): ?RedirectResponse
+    public static function saveGatewayProducts($plan, ?Collection $paramGateways = null): null|RedirectResponse|View
     {
         // $typ = $type == "prepaid" ? "o" : "s"; # o => one-time | s => subscription
         // switch ($frequency) {
@@ -590,7 +590,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public static function cancelActiveSubscriptionByAdmin($userId): ?RedirectResponse
+    public static function cancelActiveSubscriptionByAdmin($userId): null|RedirectResponse|View
     {
         $gateway = null;
         $activeSub = getCurrentActiveSubscription($userId);
@@ -612,7 +612,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public static function assignPlanByAdmin(Request $request): ?RedirectResponse
+    public static function assignPlanByAdmin(Request $request): null|RedirectResponse|View
     {
         $request->validate([
             'planID' => 'required',
@@ -690,7 +690,7 @@ class PaymentProcessController extends Controller
         }
     }
 
-    public static function assignTokenByAdmin(Request $request): ?RedirectResponse
+    public static function assignTokenByAdmin(Request $request): null|RedirectResponse|View
     {
         $request->validate([
             'token'  => 'required',

@@ -114,6 +114,8 @@ class GeneratorController extends Controller
             $chat_bot = setting('anthropic_default_model', EntityEnum::CLAUDE_3_OPUS->value);
         } elseif ($default_ai_engine === EngineEnum::DEEP_SEEK->value) {
             $chat_bot = setting('deepseek_default_model', EntityEnum::DEEPSEEK_CHAT->value);
+        } elseif ($default_ai_engine === EngineEnum::X_AI->value) {
+            $chat_bot = setting('xai_default_model', EntityEnum::GROK_2_1212->value);
         } else {
             $chat_bot = $this->settings?->openai_default_model ?: EntityEnum::GPT_4_O->value;
         }
@@ -421,6 +423,8 @@ class GeneratorController extends Controller
             $chatBot = setting('anthropic_default_model', EntityEnum::CLAUDE_3_OPUS->value);
         } elseif ($default_ai_engine === EngineEnum::DEEP_SEEK->value) {
             $chatBot = setting('deepseek_default_model', EntityEnum::DEEPSEEK_CHAT->value);
+        } elseif ($default_ai_engine === EngineEnum::X_AI->value) {
+            $chatBot = setting('xai_default_model', EntityEnum::GROK_2_1212->value);
         } else {
             $chatBot = ! $this->settings?->openai_default_model ? EntityEnum::GPT_3_5_TURBO->value : $this->settings?->openai_default_model;
         }

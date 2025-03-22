@@ -22,6 +22,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use OpenAI;
+use Throwable;
 
 class SettingsController extends Controller
 {
@@ -431,6 +433,18 @@ class SettingsController extends Controller
         return response()->json([], 200);
     }
 
+    public function xAI()
+    {
+        if (Helper::appIsDemo()) {
+            return to_route('dashboard.user.index')->with([
+                'status'  => 'error',
+                'message' => trans('This feature is disabled in demo mode.'),
+            ]);
+        }
+
+        return view('panel.admin.settings.x-ai');
+    }
+
     public function openai()
     {
         if (Helper::appIsDemo()) {
@@ -590,6 +604,8 @@ class SettingsController extends Controller
                     'serper_seo_tool_improve'    => $request->serper_seo_tool_improve,
                 ])->save();
             }
+
+            app(MenuService::class)->regenerate();
         }
 
         return response()->json([], 200);
@@ -629,6 +645,42 @@ class SettingsController extends Controller
             echo ' <br>' . $settings->serper_api_key . ' - SUCCESS <br><hr> Example about "Coffee": <br>' . $responseData['organic'][0]['snippet'] . '<br>';
         } catch (Exception $e) {
             echo $e->getMessage() . ' - ' . $settings->serper_api_key . ' -FAILED <br>';
+        }
+    }
+
+    public function xAiTest()
+    {
+        if (Helper::appIsDemo()) {
+            return to_route('dashboard.user.index')->with([
+                'status'  => 'error',
+                'message' => trans('This feature is disabled in demo mode.'),
+            ]);
+        }
+        $settings = Setting::getCache();
+        $apiKeys = ApiHelper::setXAiKey($settings, true);
+        foreach ($apiKeys as $apiKey) {
+            try {
+                $history[] = ['role' => 'system', 'content' => 'Your name is Grok AI and you are a helpful assistant.'];
+                $history[] = ['role' => 'user', 'content' => 'What is your name?'];
+                $cli = OpenAI::factory()->withBaseUri('https://api.x.ai/v1')
+                    ->withHttpHeader('Authorization', 'Bearer ' . $apiKey)
+                    ->withHttpHeader('Content-Type', 'application/json')
+                    ->withApiKey($apiKey)
+                    ->make();
+
+                $c = $cli->chat()->create(
+                    [
+                        'messages'    => $history,
+                        'model'       => EntityEnum::GROK_2_1212->value,
+                        'stream'      => false,
+                        'temperature' => 0,
+                    ]
+                );
+                echo '<hr>' . $c['choices'][0]['message']['content'];
+                echo '<br>' . $apiKey . ' - SUCCESS <br>';
+            } catch (Exception|Throwable $e) {
+                echo __('Something went wrong. Please check your API key or Credit balance.') . ' <br> ' . $apiKey . ' -FAILED <br>';
+            }
         }
     }
 
@@ -719,6 +771,18 @@ class SettingsController extends Controller
                 echo $e->getMessage() . ' - ' . $apiKey . ' -FAILED <br>';
             }
         }
+    }
+
+    public function xAiSave(Request $request): JsonResponse
+    {
+        if (Helper::appIsNotDemo()) {
+            setting([
+                'xai_api_secret'    => $request->xai_api_secret,
+                'xai_default_model' => $request->xai_default_model,
+            ])->save();
+        }
+
+        return response()->json([], 200);
     }
 
     public function openaiSave(Request $request): JsonResponse
@@ -854,6 +918,13 @@ class SettingsController extends Controller
                     'feature_tts_azure' => $request->get('feature_tts_azure'),
                     'azure_api_key'     => $request->get('azure_api_key'),
                     'azure_region'      => $request->get('azure_region'),
+                ])->save();
+            }
+
+            if ($request->hasAny(['speechify_api_key', 'feature_tts_speechify'])) {
+                setting([
+                    'feature_tts_speechify' => $request->get('feature_tts_speechify'),
+                    'speechify_api_key'     => $request->get('speechify_api_key'),
                 ])->save();
             }
 

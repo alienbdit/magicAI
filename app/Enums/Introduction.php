@@ -21,6 +21,7 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
     case AI_EDITOR = 'ai_editor';
     case AI_DOCUMENT = 'documents';
     case AI_EXT_CHATBOT = 'ext_chat_bot';
+    case AI_EXT_CHATBOT_AGENT = 'ext_chat_bot_agent';
     case AI_VIDEO = 'ai_video';
 
     case AI_VIDEO_TO_VIDEO = 'ai_video_to_video';
@@ -41,7 +42,6 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
     case AI_AVATAR = 'ai_avatar';
     case AI_AVATAR_PRO = 'ai_persona';
     case AI_FALL_VIDEO = 'ai_video_pro';
-    case AI_REPLICA = 'ai_replica';
     case AI_MUSIC = 'ai_music';
     case AI_PRODUCT_SHOT = 'ai_product_shot';
     case USER_API_KEYS = 'user_api_keys';
@@ -83,6 +83,7 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
     case DASHBOARD_THREE = 'dashboard_three';
     case DASHBOARD_CHATBOT_ICON = 'dashboard_chatbot_icon';
 
+    case SOCIAL_MEDIA = 'social_media';
     case AI_REALTIME_VOICE_CHAT = 'ai_realtime_voice_chat';
 
     public function label(): string
@@ -117,7 +118,6 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
             self::BRAND_VOICE  	                  => __('Brand Voice'),
             self::TEAM_MENU  	                    => __('Team'),
             self::AI_FALL_VIDEO                   => __('Fall Video'),
-            self::AI_REPLICA  		                  => __('AI Replica'),
             self::AI_MUSIC  	  	                  => __('AI Music'),
             self::AI_PRODUCT_SHOT  	              => __('AI Product Photography'),
             self::USER_API_KEYS  	                => __('API Keys'),
@@ -155,6 +155,7 @@ enum Introduction: string implements Contracts\WithStringBackedEnum
             self::DASHBOARD_TWO  	      			       => __('Dashboard Two'),
             self::DASHBOARD_THREE  	      			     => __('Dashboard Three'),
             self::DASHBOARD_CHATBOT_ICON  	      	=> __('Dashboard Chatbot Icon'),
+            self::SOCIAL_MEDIA  	      	          => __('Social Media'),
         };
     }
 }

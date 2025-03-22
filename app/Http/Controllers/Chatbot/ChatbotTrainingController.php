@@ -286,7 +286,7 @@ class ChatbotTrainingController extends Controller
             'message' => trans('Item deleted successfully.'),
         ]);
     }
-
+ 
     public function chatbotData(Chatbot $chatbot, ?array $data = null)
     {
         return ChatBotData::query()

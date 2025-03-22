@@ -34,9 +34,11 @@ use App\Domains\Entity\Drivers\PiAPI\MidjourneyDriver;
 use App\Domains\Entity\Drivers\PixabayDriver;
 use App\Domains\Entity\Drivers\PlagiarismCheckDriver;
 use App\Domains\Entity\Drivers\SerperDriver;
+use App\Domains\Entity\Drivers\SpeechifyDriver;
 use App\Domains\Entity\Drivers\StableDiffusion;
 use App\Domains\Entity\Drivers\SynthesiaDriver;
 use App\Domains\Entity\Drivers\UnsplashDriver;
+use App\Domains\Entity\Drivers\XAI;
 use App\Enums\AITokenType;
 use App\Enums\Traits\EnumTo;
 use App\Enums\Traits\SluggableEnumTrait;
@@ -50,16 +52,14 @@ enum EntityEnum: string
     use StringBackedEnumTrait;
 
     // Anthropic
+    case CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-20250219';
+    case CLAUDE_3_5_HAIKU = 'claude-3-haiku-20241022';
+    case CLAUDE_3_5_SONNET_V2 = 'claude-3-5-sonnet-20241022';
     case CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20240620';
-
     case CLAUDE_3_SONNET = 'claude-3-sonnet-20240229';
-
     case CLAUDE_3_OPUS = 'claude-3-opus-20240229';
-
     case CLAUDE_3_HAIKU = 'claude-3-haiku-20240307';
-
     case CLAUDE_2_1 = 'claude-2.1';
-
     case CLAUDE_2_0 = 'claude-2.0';
 
     // Embeding models for Anthropic
@@ -100,6 +100,8 @@ enum EntityEnum: string
     case GPT_4_O1_MINI = 'o1-mini';
 
     case GPT_O_03_mini = 'o3-mini';
+
+    case GPT_4_5_PREVIEW = 'gpt-4.5-preview';
 
     // embeding models for openai
     case TEXT_EMBEDDING_ADA_002 = 'text-embedding-ada-002';
@@ -175,6 +177,8 @@ enum EntityEnum: string
 
     case AZURE = 'azure';
 
+    case Speechify = 'speechify';
+
     case SERPER = 'serper';
 
     case PERPLEXITY = 'perplexity';
@@ -184,10 +188,11 @@ enum EntityEnum: string
     case DALL_E_2 = 'dall-e-2';
 
     case DALL_E_3 = 'dall-e-3';
-
     case TTS_1 = 'tts-1';
-
     case TTS_1_HD = 'tts-1-hd';
+    case GROK_2_1212 = 'grok-2-1212';
+    case GROK_2_VISION_1212 = 'grok-2-vision-1212';
+    case VEO_2 = 'veo2';
 
     case FLUX_PRO = 'flux-pro';
 
@@ -315,7 +320,11 @@ enum EntityEnum: string
             self::GPT_4_O1_PREVIEW       => __('GPT o1-preview (Updated Knowledge cutoff of Dec 2023, 128k)'),
             self::GPT_4_O1_MINI          => __('GPT o1-mini (Updated Knowledge cutoff of Dec 2023, 128k)'),
             self::GPT_O_03_mini          => __('GPT o3-mini (Updated Knowledge cutoff of October 2023, 200k)'),
+            self::GPT_4_5_PREVIEW        => __('GPT-4.5-preview (Updated Knowledge cutoff of October 2023, 128k)'),
             // Anthropic
+            self::CLAUDE_3_7_SONNET        => __('Claude 3.7 Sonnet'),
+            self::CLAUDE_3_5_HAIKU         => __('Claude 3.5 Haiku'),
+            self::CLAUDE_3_5_SONNET_V2     => __('Claude 3.5 Sonnet V2'),
             self::CLAUDE_3_5_SONNET        => __('Claude 3.5 Sonnet'),
             self::CLAUDE_3_SONNET          => __('Claude 3 Sonnet'),
             self::CLAUDE_3_OPUS            => __('Claude 3 Opus'),
@@ -351,13 +360,19 @@ enum EntityEnum: string
             self::GOOGLE => __('Google for TTS'),
             // Azure
             self::AZURE => __('Azure for TTS'),
+            // Speechify
+            self::Speechify=> __('Speechify for TTS'),
             // Serper
             self::SERPER => __('Serper for Realtime Data'),
             // Perplexity
             self::PERPLEXITY => __('Perplexity for Realtime Data'),
             // Midjourney
             self::MIDJOURNEY => __('Midjourney'),
+            // X AI
+            self::GROK_2_1212        => __('Grok 2 1212'),
+            self::GROK_2_VISION_1212 => __('Grok 2 Vision 1212'),
             // FAL AI
+            self::VEO_2                    => __('Google VEO 2'),
             self::FLUX_PRO                 => __('Flux Pro'),
             self::IDEOGRAM                 => __('Ideogram V2'),
             self::FLUX_PRO_1_1             => __('Flux Pro 1.1'),
@@ -462,8 +477,12 @@ enum EntityEnum: string
             self::GPT_4_O_MINI,
             self::GPT_4_O1_PREVIEW,
             self::GPT_4_O1_MINI,
-            self::GPT_O_03_mini => EngineEnum::OPEN_AI,
+            self::GPT_O_03_mini,
+            self::GPT_4_5_PREVIEW => EngineEnum::OPEN_AI,
             // Anthropic
+            self::CLAUDE_3_7_SONNET,
+            self::CLAUDE_3_5_HAIKU,
+            self::CLAUDE_3_5_SONNET_V2,
             self::CLAUDE_3_5_SONNET,
             self::CLAUDE_3_SONNET,
             self::CLAUDE_3_OPUS,
@@ -504,14 +523,18 @@ enum EntityEnum: string
             self::GOOGLE => EngineEnum::GOOGLE,
             // Azure
             self::AZURE => EngineEnum::AZURE,
+            // Speechify
+            self::Speechify => EngineEnum::Speechify,
             // Serper
             self::SERPER => EngineEnum::SERPER,
             // Perplexity
             self::PERPLEXITY => EngineEnum::PERPLEXITY,
             // PIAPI
             self::MIDJOURNEY => EngineEnum::PI_API,
+            // X AI
+            self::GROK_2_1212, self::GROK_2_VISION_1212 => EngineEnum::X_AI,
             // FAL AI
-            self::VIDEO_UPSCALER, self::COGVIDEOX_5B, self::ANIMATEDIFF_V2V, self::FAST_ANIMATEDIFF_TURBO, self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
+            self::VEO_2, self::VIDEO_UPSCALER, self::COGVIDEOX_5B, self::ANIMATEDIFF_V2V, self::FAST_ANIMATEDIFF_TURBO, self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
             self::KLING, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => EngineEnum::FAL_AI,
             // AI/ML api minimax engine
             self::MUSIC_01 => EngineEnum::AI_ML_MINIMAX,
@@ -589,16 +612,20 @@ enum EntityEnum: string
             self::GPT_4_O1_PREVIEW       => OpenAI\GPT4O1PreviewDriver::class,
             self::GPT_4_O1_MINI          => OpenAI\GPT4O1MiniDriver::class,
             self::GPT_O_03_mini          => OpenAI\GPTO3MiniDriver::class,
+            self::GPT_4_5_PREVIEW        => OpenAI\GPT45PreviewDriver::class,
             // Anthropic
-            self::CLAUDE_3_5_SONNET => Anthropic\Claude35SonnetDriver::class,
-            self::CLAUDE_3_SONNET   => Anthropic\Claude3SonnetDriver::class,
-            self::CLAUDE_3_OPUS     => Anthropic\Claude3OpusDriver::class,
-            self::CLAUDE_3_HAIKU    => Anthropic\Claude3HaikuDriver::class,
-            self::CLAUDE_2_1        => Anthropic\Claude21Driver::class,
-            self::CLAUDE_2_0        => Anthropic\Claude20Driver::class,
-            self::VOYAGE_2          => Anthropic\Voyage2Driver::class,
-            self::VOYAGE_LARGE_2    => Anthropic\VoyageLarge2Driver::class,
-            self::VOYAGE_CODE_2     => Anthropic\VoyageCode2Driver::class,
+            self::CLAUDE_3_7_SONNET    => Anthropic\Claude37SonnetDriver::class,
+            self::CLAUDE_3_5_HAIKU     => Anthropic\Claude35HaikuDriver::class,
+            self::CLAUDE_3_5_SONNET_V2 => Anthropic\Claude35SonnetV2Driver::class,
+            self::CLAUDE_3_5_SONNET    => Anthropic\Claude35SonnetDriver::class,
+            self::CLAUDE_3_SONNET      => Anthropic\Claude3SonnetDriver::class,
+            self::CLAUDE_3_OPUS        => Anthropic\Claude3OpusDriver::class,
+            self::CLAUDE_3_HAIKU       => Anthropic\Claude3HaikuDriver::class,
+            self::CLAUDE_2_1           => Anthropic\Claude21Driver::class,
+            self::CLAUDE_2_0           => Anthropic\Claude20Driver::class,
+            self::VOYAGE_2             => Anthropic\Voyage2Driver::class,
+            self::VOYAGE_LARGE_2       => Anthropic\VoyageLarge2Driver::class,
+            self::VOYAGE_CODE_2        => Anthropic\VoyageCode2Driver::class,
             // Gemini
             self::GEMINI_1_5_PRO_LATEST     => Gemini\Gemini15ProLatestDriver::class,
             self::GEMINI_PRO                => Gemini\GeminiProDriver::class,
@@ -621,11 +648,16 @@ enum EntityEnum: string
             self::ISOLATOR        => ElevenLabs\IsolatorDriver::class,
             self::GOOGLE          => GoogleDriver::class,
             self::AZURE           => AzureDriver::class,
+            self::Speechify       => SpeechifyDriver::class,
             self::SERPER          => SerperDriver::class,
             self::PERPLEXITY      => PerplexityDriver::class,
             // PiAPI
             self::MIDJOURNEY      => MidjourneyDriver::class,
+            // X AI
+            self::GROK_2_1212        => XAI\Grok21212Driver::class,
+            self::GROK_2_VISION_1212 => XAI\Grok2Vision1212Driver::class,
             // FAL AI
+            self::VEO_2                    => FalAI\Veo2Driver::class,
             self::FLUX_PRO                 => FalAI\FluxProDriver::class,
             self::IDEOGRAM                 => FalAI\IdeogramDriver::class,
             self::FLUX_PRO_1_1             => FalAI\FluxPro11Driver::class,
@@ -706,8 +738,9 @@ enum EntityEnum: string
             self::GPT_4_O1_PREVIEW => 0.06,
             self::GPT_4_O1_MINI    => 0.06,
             self::GPT_O_03_mini    => 0.06,
+            self::GPT_4_5_PREVIEW  => 0.06,
             // Anthropic
-            self::CLAUDE_3_5_SONNET, self::CLAUDE_3_SONNET => 0.015,
+            self::CLAUDE_3_7_SONNET, self::CLAUDE_3_5_HAIKU, self::CLAUDE_3_5_SONNET_V2, self::CLAUDE_3_5_SONNET, self::CLAUDE_3_SONNET => 0.015,
             self::CLAUDE_3_OPUS  => 0.075,
             self::CLAUDE_3_HAIKU => 0.00125,
             self::CLAUDE_2_1, self::CLAUDE_2_0 => 0.024,
@@ -733,14 +766,18 @@ enum EntityEnum: string
             self::GOOGLE => 0.016,
             // Azure
             self::AZURE => 0.015,
+            // Speechify
+            self::Speechify => 0.015,
             // Serper
             self::SERPER => 0.001,
             // Perplexity
             self::PERPLEXITY => 0.001,
             // PiAPI
             self::MIDJOURNEY => 0.001,
+            // X AI
+            self::GROK_2_1212, self::GROK_2_VISION_1212 => 0.001,
             // FAL AI
-            self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
+            self::VEO_2, self::FLUX_PRO, self::FLUX_PRO_1_1, self::FLUX_REALISM, self::FLUX_SCHNELL, self::IDEOGRAM,
             self::KLING, self::LUMA_DREAM_MACHINE, self::HAIPER, self::MINIMAX => 0.05,
             self::VIDEO_UPSCALER, self::COGVIDEOX_5B, self::ANIMATEDIFF_V2V, self::FAST_ANIMATEDIFF_TURBO => 0.05,
             // AI/ML api minimax engine
@@ -937,6 +974,7 @@ enum EntityEnum: string
                 self::GPT_4_O1_PREVIEW,
                 self::GPT_4_O1_MINI,
                 self::GPT_O_03_mini,
+                self::GPT_4_5_PREVIEW,
                 self::DEEPSEEK_CHAT,
                 self::DEEPSEEK_REASONER,
             ]

@@ -681,6 +681,9 @@ class InstallationHelper
                                     'label'     => 'Fal AI',
                                 ]);
 
+                                $keysToBeDeleted = ['novita_extension', 'tavus_extension', 'api_integration_llama', 'ai_tavus'];
+                                Models\Common\Menu::query()->whereIn('key', $keysToBeDeleted)->delete();
+
                                 app(MenuService::class)->regenerate();
                             } catch (Exception $exception) {
                             }
